@@ -1,0 +1,12 @@
+services:
+  db:
+    image: postgres:latest
+    container_name: db-bookstore
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+    volumes:
+      - db:/var/lib/postgresql
+volumes:
+  db:
