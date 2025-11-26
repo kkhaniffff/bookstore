@@ -1,6 +1,6 @@
 use axum::{Json, extract::Query, extract::State, http::StatusCode};
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool, Type};
+use sqlx::{FromRow, PgPool, Postgres, Transaction, Type};
 
 #[derive(Serialize, FromRow)]
 pub struct Order {
@@ -44,7 +44,6 @@ impl Pagination {
     fn offset(&self) -> i64 {
         self.offset.unwrap_or(0)
     }
-
     fn limit(&self) -> i64 {
         self.limit.unwrap_or(100)
     }
@@ -55,29 +54,32 @@ pub async fn create_order(
     Json(payload): Json<Vec<OrderItemDto>>,
 ) -> Result<(StatusCode, Json<uuid::Uuid>), StatusCode> {
     let book_ids: Vec<uuid::Uuid> = payload.iter().map(|i| i.book_id).collect();
-    let books = fetch_books(&pool, &book_ids).await?;
+    let mut tx = pool
+        .begin()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let books = fetch_books(&mut tx, &book_ids).await?;
 
     validate_stock(&books, &payload)?;
-
-    let transaction = pool.begin().await.unwrap();
 
     let order_id = uuid::Uuid::new_v4();
     let total_price = payload
         .iter()
         .map(|item| {
-            let book = books.iter().find(|b| b.id == item.book_id).unwrap(); // already validated
+            let book = books.iter().find(|b| b.id == item.book_id).unwrap();
             book.price * item.amount
         })
         .sum();
 
-    create_order_record(&pool, &order_id, total_price).await?;
+    create_order_record(&mut tx, &order_id, total_price).await?;
 
     for item in payload {
         let item_id = uuid::Uuid::new_v4();
-        let book = books.iter().find(|b| b.id == item.book_id).unwrap(); // already validated
+        let book = books.iter().find(|b| b.id == item.book_id).unwrap();
 
         create_order_item(
-            &pool,
+            &mut tx,
             &order_id,
             &item_id,
             &item.book_id,
@@ -86,45 +88,48 @@ pub async fn create_order(
         )
         .await?;
 
-        update_stock(&pool, &item.book_id, item.amount).await?;
+        update_stock(&mut tx, &item.book_id, item.amount).await?;
     }
 
-    match transaction.commit().await {
-        Ok(_) => Ok((StatusCode::CREATED, Json(order_id))),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+    tx.commit()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok((StatusCode::CREATED, Json(order_id)))
 }
 
 pub async fn get_orders(
     State(pool): State<PgPool>,
     Query(pagination): Query<Pagination>,
 ) -> Result<Json<Vec<Order>>, StatusCode> {
-    let res = sqlx::query_as!(Order, r#"
+    let res = sqlx::query_as!(
+        Order,
+        r#"
             SELECT 
                 o.id, 
                 o.created_at, 
                 o.total_price,
                 ARRAY_AGG(ROW(i.id, i.price, i.amount, b.id, b.title, b.author, b.publication_date)) AS "items!: Vec<OrderItem>"
-                FROM orders o
-                JOIN order_items i ON o.id = i.order_id
-                JOIN books b on b.id = i.book_id
-                GROUP BY o.id
-                ORDER BY o.created_at DESC
-                OFFSET $1 LIMIT $2
-            "#,
-            pagination.offset(),
-            pagination.limit(),
-        )
-        .fetch_all(&pool)
-        .await;
+            FROM orders o
+            JOIN order_items i ON o.id = i.order_id
+            JOIN books b on b.id = i.book_id
+            GROUP BY o.id
+            ORDER BY o.created_at DESC
+            OFFSET $1 LIMIT $2
+        "#,
+        pagination.offset(),
+        pagination.limit(),
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match res {
-        Ok(orders) => Ok(Json(orders)),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+    Ok(Json(res))
 }
 
-async fn fetch_books(pool: &PgPool, book_ids: &Vec<uuid::Uuid>) -> Result<Vec<Book>, StatusCode> {
+async fn fetch_books(
+    tx: &mut Transaction<'_, Postgres>,
+    book_ids: &Vec<uuid::Uuid>,
+) -> Result<Vec<Book>, StatusCode> {
     sqlx::query_as!(
         Book,
         r#"
@@ -134,7 +139,7 @@ async fn fetch_books(pool: &PgPool, book_ids: &Vec<uuid::Uuid>) -> Result<Vec<Bo
         "#,
         book_ids
     )
-    .fetch_all(pool)
+    .fetch_all(&mut **tx)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
@@ -154,7 +159,7 @@ fn validate_stock(books: &Vec<Book>, payload: &Vec<OrderItemDto>) -> Result<(), 
 }
 
 async fn create_order_record(
-    pool: &PgPool,
+    tx: &mut Transaction<'_, Postgres>,
     order_id: &uuid::Uuid,
     total_price: i32,
 ) -> Result<(), StatusCode> {
@@ -167,7 +172,7 @@ async fn create_order_record(
         &chrono::Utc::now(),
         total_price
     )
-    .execute(pool)
+    .execute(&mut **tx)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -175,7 +180,7 @@ async fn create_order_record(
 }
 
 async fn create_order_item(
-    pool: &PgPool,
+    tx: &mut Transaction<'_, Postgres>,
     order_id: &uuid::Uuid,
     item_id: &uuid::Uuid,
     book_id: &uuid::Uuid,
@@ -193,14 +198,18 @@ async fn create_order_item(
         price,
         amount
     )
-    .execute(pool)
+    .execute(&mut **tx)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(())
 }
 
-async fn update_stock(pool: &PgPool, book_id: &uuid::Uuid, amount: i32) -> Result<(), StatusCode> {
+async fn update_stock(
+    tx: &mut Transaction<'_, Postgres>,
+    book_id: &uuid::Uuid,
+    amount: i32,
+) -> Result<(), StatusCode> {
     sqlx::query!(
         r#"
         UPDATE books
@@ -210,7 +219,7 @@ async fn update_stock(pool: &PgPool, book_id: &uuid::Uuid, amount: i32) -> Resul
         amount,
         book_id
     )
-    .execute(pool)
+    .execute(&mut **tx)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
