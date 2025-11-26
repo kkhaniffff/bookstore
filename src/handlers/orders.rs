@@ -1,4 +1,4 @@
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{Json, extract::Query, extract::State, http::StatusCode};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool, Type};
 
@@ -32,6 +32,22 @@ pub struct Book {
 pub struct OrderItemDto {
     book_id: uuid::Uuid,
     amount: i32,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct Pagination {
+    offset: Option<i64>,
+    limit: Option<i64>,
+}
+
+impl Pagination {
+    fn offset(&self) -> i64 {
+        self.offset.unwrap_or(0)
+    }
+
+    fn limit(&self) -> i64 {
+        self.limit.unwrap_or(100)
+    }
 }
 
 pub async fn create_order(
@@ -79,18 +95,26 @@ pub async fn create_order(
     }
 }
 
-pub async fn get_orders(State(pool): State<PgPool>) -> Result<Json<Vec<Order>>, StatusCode> {
+pub async fn get_orders(
+    State(pool): State<PgPool>,
+    Query(pagination): Query<Pagination>,
+) -> Result<Json<Vec<Order>>, StatusCode> {
     let res = sqlx::query_as!(Order, r#"
-        SELECT 
-            o.id, 
-            o.created_at, 
-            o.total_price,
-            ARRAY_AGG(ROW(i.id, i.price, i.amount, b.id, b.title, b.author, b.publication_date)) AS "items!: Vec<OrderItem>"
-            FROM orders o
-            JOIN order_items i ON o.id = i.order_id
-            JOIN books b on b.id = i.book_id
-            GROUP BY o.id
-        "#)
+            SELECT 
+                o.id, 
+                o.created_at, 
+                o.total_price,
+                ARRAY_AGG(ROW(i.id, i.price, i.amount, b.id, b.title, b.author, b.publication_date)) AS "items!: Vec<OrderItem>"
+                FROM orders o
+                JOIN order_items i ON o.id = i.order_id
+                JOIN books b on b.id = i.book_id
+                GROUP BY o.id
+                ORDER BY o.created_at DESC
+                OFFSET $1 LIMIT $2
+            "#,
+            pagination.offset(),
+            pagination.limit(),
+        )
         .fetch_all(&pool)
         .await;
 
@@ -107,7 +131,7 @@ async fn fetch_books(pool: &PgPool, book_ids: &Vec<uuid::Uuid>) -> Result<Vec<Bo
         SELECT id, price, stock_quantity
         FROM books
         WHERE archived IS FALSE AND id IN (SELECT unnest($1::uuid[]))
-    "#,
+        "#,
         book_ids
     )
     .fetch_all(pool)
