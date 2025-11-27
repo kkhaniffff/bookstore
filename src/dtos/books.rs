@@ -19,11 +19,15 @@ pub struct BookFilterDto {
 
 impl BookFilterDto {
     pub fn title(&self) -> String {
-        self.title.as_deref().map_or("%".into(), |t| format!("{t}%"))
+        self.title
+            .as_deref()
+            .map_or("%".into(), |t| format!("{t}%"))
     }
 
     pub fn author(&self) -> String {
-        self.author.as_deref().map_or("%".into(), |a| format!("{a}%"))
+        self.author
+            .as_deref()
+            .map_or("%".into(), |a| format!("{a}%"))
     }
 
     pub fn offset(&self) -> i64 {

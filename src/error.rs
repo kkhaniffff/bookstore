@@ -1,4 +1,8 @@
-use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
+use axum::{
+    Json,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -22,16 +26,18 @@ impl From<sqlx::Error> for AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, message) = match self {
-            AppError::Database(msg) => (StatusCode::INTERNAL_SERVER_ERROR, format!("Database error: {msg}")),
-            AppError::NotFound(id) => (StatusCode::NOT_FOUND, format!("Entity with id={id} not found")),
+            AppError::Database(msg) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Database error: {msg}"),
+            ),
+            AppError::NotFound(id) => (
+                StatusCode::NOT_FOUND,
+                format!("Entity with id={id} not found"),
+            ),
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, format!("Bad request: {msg}")),
         };
 
-
-        let body = Json(ErrorBody {
-            error: message,
-        });
-
+        let body = Json(ErrorBody { error: message });
 
         (status, body).into_response()
     }
