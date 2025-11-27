@@ -1,54 +1,8 @@
 use axum::{Json, extract::Query, extract::State, http::StatusCode};
-use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool, Postgres, Transaction, Type};
+use sqlx::{PgPool, Postgres, Transaction};
 use crate::error::AppError;
-
-#[derive(Serialize, FromRow)]
-pub struct Order {
-    id: uuid::Uuid,
-    created_at: chrono::DateTime<chrono::Utc>,
-    total_price: i32,
-    items: Vec<OrderItem>,
-}
-
-#[derive(Serialize, FromRow, Type)]
-pub struct OrderItem {
-    id: uuid::Uuid,
-    price: i32,
-    amount: i32,
-    book_id: uuid::Uuid,
-    book_title: String,
-    book_author: String,
-    book_publication_date: chrono::NaiveDate,
-}
-
-#[derive(FromRow)]
-pub struct Book {
-    id: uuid::Uuid,
-    price: i32,
-    stock_quantity: i32,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct OrderItemDto {
-    book_id: uuid::Uuid,
-    amount: i32,
-}
-
-#[derive(Debug, Deserialize, Default)]
-pub struct Pagination {
-    offset: Option<i64>,
-    limit: Option<i64>,
-}
-
-impl Pagination {
-    fn offset(&self) -> i64 {
-        self.offset.unwrap_or(0)
-    }
-    fn limit(&self) -> i64 {
-        self.limit.unwrap_or(100)
-    }
-}
+use crate::models::{orders::{Order, OrderItem}, books::BookStock};
+use crate::dtos::orders::{OrderItemDto, Pagination};
 
 pub async fn create_order(
     State(pool): State<PgPool>,
@@ -130,9 +84,9 @@ pub async fn get_orders(
 async fn fetch_books(
     tx: &mut Transaction<'_, Postgres>,
     book_ids: &Vec<uuid::Uuid>,
-) -> Result<Vec<Book>, AppError> {
+) -> Result<Vec<BookStock>, AppError> {
     sqlx::query_as!(
-        Book,
+        BookStock,
         r#"
         SELECT id, price, stock_quantity
         FROM books
@@ -145,7 +99,7 @@ async fn fetch_books(
     .map_err(AppError::from)
 }
 
-fn validate_stock(books: &Vec<Book>, payload: &Vec<OrderItemDto>) -> Result<(), AppError> {
+fn validate_stock(books: &Vec<BookStock>, payload: &Vec<OrderItemDto>) -> Result<(), AppError> {
     for item in payload {
         let book = books
             .iter()

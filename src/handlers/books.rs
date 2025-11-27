@@ -1,57 +1,8 @@
 use axum::{Json, extract::Path, extract::Query, extract::State, http::StatusCode};
-use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool};
+use sqlx::PgPool;
 use crate::error::AppError;
-
-#[derive(Serialize, FromRow)]
-pub struct Book {
-    id: uuid::Uuid,
-    title: String,
-    author: String,
-    publication_date: chrono::NaiveDate,
-    stock_quantity: i32,
-    price: i32,
-    archived: bool,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct BookDto {
-    title: String,
-    author: String,
-    publication_date: chrono::NaiveDate,
-    stock_quantity: i32,
-    price: i32,
-}
-
-#[derive(Debug, Deserialize, Default)]
-pub struct FilterParams {
-    title: Option<String>,
-    author: Option<String>,
-    offset: Option<i64>,
-    limit: Option<i64>,
-}
-
-impl FilterParams {
-    fn title(&self) -> String {
-        self.title
-            .as_deref()
-            .map_or("%".into(), |t| format!("{t}%"))
-    }
-
-    fn author(&self) -> String {
-        self.author
-            .as_deref()
-            .map_or("%".into(), |a| format!("{a}%"))
-    }
-
-    fn offset(&self) -> i64 {
-        self.offset.unwrap_or(0)
-    }
-
-    fn limit(&self) -> i64 {
-        self.limit.unwrap_or(100)
-    }
-}
+use crate::models::books::Book;
+use crate::dtos::books::{BookDto, BookFilterDto};
 
 pub async fn create_book(
     State(pool): State<PgPool>,
@@ -80,7 +31,7 @@ pub async fn create_book(
 
 pub async fn get_books(
     State(pool): State<PgPool>,
-    Query(filter): Query<FilterParams>,
+    Query(filter): Query<BookFilterDto>,
 ) -> Result<Json<Vec<Book>>, AppError> {
     let books = sqlx::query_as!(
         Book,
