@@ -1,5 +1,6 @@
 mod handlers;
 mod routes;
+mod error;
 
 use axum::{Router, serve};
 use dotenv::dotenv;

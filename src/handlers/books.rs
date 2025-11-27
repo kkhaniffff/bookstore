@@ -1,6 +1,7 @@
 use axum::{Json, extract::Path, extract::Query, extract::State, http::StatusCode};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
+use crate::error::AppError;
 
 #[derive(Serialize, FromRow)]
 pub struct Book {
@@ -55,10 +56,10 @@ impl FilterParams {
 pub async fn create_book(
     State(pool): State<PgPool>,
     Json(payload): Json<BookDto>,
-) -> Result<(StatusCode, Json<uuid::Uuid>), StatusCode> {
+) -> Result<(StatusCode, Json<uuid::Uuid>), AppError> {
     let id = uuid::Uuid::new_v4();
 
-    let res = sqlx::query!(
+    sqlx::query!(
         r#"
         INSERT INTO books (id, title, author, publication_date, stock_quantity, price)
         VALUES ($1, $2, $3, $4, $5, $6)
@@ -71,19 +72,17 @@ pub async fn create_book(
         &payload.price
     )
     .execute(&pool)
-    .await;
+    .await
+    .map_err(AppError::from)?;
 
-    match res {
-        Ok(_) => Ok((StatusCode::CREATED, Json(id))),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+    Ok((StatusCode::CREATED, Json(id)))
 }
 
 pub async fn get_books(
     State(pool): State<PgPool>,
     Query(filter): Query<FilterParams>,
-) -> Result<Json<Vec<Book>>, StatusCode> {
-    let res = sqlx::query_as!(
+) -> Result<Json<Vec<Book>>, AppError> {
+    let books = sqlx::query_as!(
         Book,
         r#"
             SELECT * FROM books 
@@ -96,20 +95,18 @@ pub async fn get_books(
         filter.limit(),
     )
     .fetch_all(&pool)
-    .await;
+    .await
+    .map_err(AppError::from)?;
 
-    match res {
-        Ok(books) => Ok(Json(books)),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+    Ok(Json(books))
 }
 
 pub async fn update_book(
     State(pool): State<PgPool>,
     Path(id): Path<uuid::Uuid>,
     Json(payload): Json<BookDto>,
-) -> StatusCode {
-    let res = sqlx::query!(
+) -> Result<(), AppError> {
+    let rows_affected = sqlx::query!(
         r#"
         UPDATE books
         SET title = $1, author = $2, publication_date = $3, stock_quantity = $4, price = $5
@@ -124,19 +121,18 @@ pub async fn update_book(
     )
     .execute(&pool)
     .await
-    .map(|res| match res.rows_affected() {
-        0 => StatusCode::NOT_FOUND,
-        _ => StatusCode::OK,
-    });
+    .map(|res| res.rows_affected())
+    .map_err(AppError::from)?;
 
-    match res {
-        Ok(status) => status,
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    match rows_affected {
+        0 => Err(AppError::NotFound(id.to_string())),
+        _ => Ok(())
     }
+
 }
 
-pub async fn archive_book(State(pool): State<PgPool>, Path(id): Path<uuid::Uuid>) -> StatusCode {
-    let res = sqlx::query!(
+pub async fn archive_book(State(pool): State<PgPool>, Path(id): Path<uuid::Uuid>) -> Result<(), AppError> {
+    let rows_affected = sqlx::query!(
         r#"
         UPDATE books
         SET archived = true
@@ -146,13 +142,11 @@ pub async fn archive_book(State(pool): State<PgPool>, Path(id): Path<uuid::Uuid>
     )
     .execute(&pool)
     .await
-    .map(|res| match res.rows_affected() {
-        0 => StatusCode::NOT_FOUND,
-        _ => StatusCode::OK,
-    });
+    .map(|res| res.rows_affected())
+    .map_err(AppError::from)?;
 
-    match res {
-        Ok(status) => status,
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    match rows_affected {
+        0 => Err(AppError::NotFound(id.to_string())),
+        _ => Ok(())
     }
 }
