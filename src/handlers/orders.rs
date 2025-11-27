@@ -19,7 +19,7 @@ pub struct OrderItem {
     book_id: uuid::Uuid,
     book_title: String,
     book_author: String,
-    book_publication_date: Option<chrono::NaiveDate>,
+    book_publication_date: chrono::NaiveDate,
 }
 
 #[derive(FromRow)]

@@ -8,7 +8,7 @@ pub struct Book {
     id: uuid::Uuid,
     title: String,
     author: String,
-    publication_date: Option<chrono::NaiveDate>,
+    publication_date: chrono::NaiveDate,
     stock_quantity: i32,
     price: i32,
     archived: bool,
