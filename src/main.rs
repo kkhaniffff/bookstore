@@ -7,8 +7,13 @@ mod routes;
 
 use axum::{Router, serve};
 use dotenv::dotenv;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::postgres::{PgPool, PgPoolOptions};
+use std::sync::Arc;
 use tokio::net::TcpListener;
+
+pub struct AppState {
+    pub db: PgPool,
+}
 
 #[tokio::main]
 async fn main() {
@@ -26,7 +31,7 @@ async fn main() {
         .merge(routes::health::router())
         .merge(routes::books::router())
         .merge(routes::orders::router())
-        .with_state(pool);
+        .with_state(Arc::new(AppState { db: pool }));
 
     let addr = "0.0.0.0:3000";
 

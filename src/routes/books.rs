@@ -1,9 +1,9 @@
-use crate::handlers::books;
+use crate::{AppState, handlers::books};
 use axum::Router;
 use axum::routing::{delete, get, post, put};
-use sqlx::{Pool, Postgres};
+use std::sync::Arc;
 
-pub fn router() -> Router<Pool<Postgres>> {
+pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/books", post(books::create_book))
         .route("/books", get(books::get_books))

@@ -1,17 +1,18 @@
 use crate::{
+    AppState,
     error::AppError,
     models::{books::BookStock, orders::Order},
     payloads::orders::{OrderItemPayload, PaginationPayload},
     repositories::{books as book_repo, orders as order_repo},
 };
 use axum::{Json, extract::Query, extract::State, http::StatusCode};
-use sqlx::PgPool;
+use std::sync::Arc;
 
 pub async fn create_order(
-    State(pool): State<PgPool>,
+    State(state): State<Arc<AppState>>,
     Json(payload): Json<Vec<OrderItemPayload>>,
 ) -> Result<(StatusCode, Json<uuid::Uuid>), AppError> {
-    let mut tx = pool.begin().await.map_err(AppError::from)?;
+    let mut tx = state.db.begin().await.map_err(AppError::from)?;
 
     let book_ids: Vec<uuid::Uuid> = payload.iter().map(|i| i.book_id).collect();
     let books = book_repo::get_stock(&mut tx, &book_ids)
@@ -49,10 +50,10 @@ pub async fn create_order(
 }
 
 pub async fn get_orders(
-    State(pool): State<PgPool>,
+    State(state): State<Arc<AppState>>,
     Query(pagination): Query<PaginationPayload>,
 ) -> Result<Json<Vec<Order>>, AppError> {
-    let orders = order_repo::fetch_all(&pool, pagination)
+    let orders = order_repo::fetch_all(&state.db, pagination)
         .await
         .map_err(AppError::from)?;
 

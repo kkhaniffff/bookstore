@@ -1,7 +1,7 @@
-use crate::handlers::health;
+use crate::{AppState, handlers::health};
 use axum::{Router, routing::get};
-use sqlx::{Pool, Postgres};
+use std::sync::Arc;
 
-pub fn router() -> Router<Pool<Postgres>> {
+pub fn router() -> Router<Arc<AppState>> {
     Router::new().route("/health", get(health::get_health))
 }
