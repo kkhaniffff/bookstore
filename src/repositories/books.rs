@@ -1,11 +1,11 @@
 use crate::{
-    dtos::books::{BookDto, BookFilterDto},
     models::books::{Book, BookStock},
+    payloads::books::{BookFilterPayload, BookPayload},
 };
 use sqlx::{Error, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 
-pub async fn insert(pool: &PgPool, dto: &BookDto) -> Result<Uuid, Error> {
+pub async fn insert(pool: &PgPool, dto: &BookPayload) -> Result<Uuid, Error> {
     let id = Uuid::new_v4();
     sqlx::query!(
         r#"
@@ -24,7 +24,7 @@ pub async fn insert(pool: &PgPool, dto: &BookDto) -> Result<Uuid, Error> {
     .map(|_| id)
 }
 
-pub async fn fetch_all(pool: &PgPool, filter: BookFilterDto) -> Result<Vec<Book>, Error> {
+pub async fn fetch_all(pool: &PgPool, filter: BookFilterPayload) -> Result<Vec<Book>, Error> {
     sqlx::query_as!(
         Book,
         r#"
@@ -49,7 +49,7 @@ pub async fn fetch_all(pool: &PgPool, filter: BookFilterDto) -> Result<Vec<Book>
     .await
 }
 
-pub async fn update(pool: &PgPool, id: Uuid, dto: &BookDto) -> Result<u64, Error> {
+pub async fn update(pool: &PgPool, id: Uuid, dto: &BookPayload) -> Result<u64, Error> {
     sqlx::query!(
         r#"
             UPDATE books

@@ -2,8 +2,8 @@ use sqlx::{Error, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::{
-    dtos::orders::Pagination,
     models::orders::{Order, OrderItem},
+    payloads::orders::PaginationPayload,
 };
 
 pub async fn insert(tx: &mut Transaction<'_, Postgres>, total_price: i32) -> Result<Uuid, Error> {
@@ -46,7 +46,7 @@ pub async fn insert_item(
     Ok(())
 }
 
-pub async fn fetch_all(pool: &PgPool, p: Pagination) -> Result<Vec<Order>, Error> {
+pub async fn fetch_all(pool: &PgPool, p: PaginationPayload) -> Result<Vec<Order>, Error> {
     sqlx::query_as!(
         Order,
         r#"

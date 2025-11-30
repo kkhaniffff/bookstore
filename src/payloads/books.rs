@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-pub struct BookDto {
+pub struct BookPayload {
     pub title: String,
     pub author: String,
     pub publication_date: chrono::NaiveDate,
@@ -10,14 +10,14 @@ pub struct BookDto {
 }
 
 #[derive(Debug, Deserialize, Default)]
-pub struct BookFilterDto {
+pub struct BookFilterPayload {
     pub title: Option<String>,
     pub author: Option<String>,
     pub offset: Option<i64>,
     pub limit: Option<i64>,
 }
 
-impl BookFilterDto {
+impl BookFilterPayload {
     pub fn title(&self) -> String {
         self.title
             .as_deref()

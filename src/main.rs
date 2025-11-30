@@ -1,7 +1,7 @@
-mod dtos;
 mod error;
 mod handlers;
 mod models;
+mod payloads;
 mod repositories;
 mod routes;
 

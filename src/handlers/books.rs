@@ -1,7 +1,7 @@
 use crate::{
-    dtos::books::{BookDto, BookFilterDto},
     error::AppError,
     models::books::Book,
+    payloads::books::{BookFilterPayload, BookPayload},
     repositories::books as repo,
 };
 use axum::{Json, extract::Path, extract::Query, extract::State, http::StatusCode};
@@ -9,7 +9,7 @@ use sqlx::PgPool;
 
 pub async fn create_book(
     State(pool): State<PgPool>,
-    Json(payload): Json<BookDto>,
+    Json(payload): Json<BookPayload>,
 ) -> Result<(StatusCode, Json<uuid::Uuid>), AppError> {
     let id = repo::insert(&pool, &payload)
         .await
@@ -20,7 +20,7 @@ pub async fn create_book(
 
 pub async fn get_books(
     State(pool): State<PgPool>,
-    Query(filter): Query<BookFilterDto>,
+    Query(filter): Query<BookFilterPayload>,
 ) -> Result<Json<Vec<Book>>, AppError> {
     let books = repo::fetch_all(&pool, filter)
         .await
@@ -32,7 +32,7 @@ pub async fn get_books(
 pub async fn update_book(
     State(pool): State<PgPool>,
     Path(id): Path<uuid::Uuid>,
-    Json(payload): Json<BookDto>,
+    Json(payload): Json<BookPayload>,
 ) -> Result<(), AppError> {
     let rows_affected = repo::update(&pool, id, &payload)
         .await
