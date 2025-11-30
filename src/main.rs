@@ -43,10 +43,11 @@ async fn main() {
     };
 
     let app = Router::new()
-        .merge(routes::health::router())
-        .merge(routes::books::router())
-        .merge(routes::orders::router())
         .merge(routes::auth::router())
+        .merge(routes::books::router())
+        .merge(routes::health::router())
+        .merge(routes::orders::router())
+        .merge(routes::users::router())
         .with_state(Arc::new(state));
 
     let addr = "0.0.0.0:3000";

@@ -40,3 +40,22 @@ pub async fn fetch_by_email(pool: &PgPool, email: &str) -> Result<Option<User>, 
     .fetch_optional(pool)
     .await
 }
+
+pub async fn fetch_by_id(pool: &PgPool, id: &Uuid) -> Result<Option<User>, Error> {
+    sqlx::query_as!(
+        User,
+        r#"
+            SELECT 
+                    id,
+                    email,
+                    name,
+                    password,
+                    role as "role: Role"
+            FROM users
+            WHERE id = $1
+        "#,
+        id
+    )
+    .fetch_optional(pool)
+    .await
+}
