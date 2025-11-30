@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO orders (id, created_at, user_id, total_price)\n            VALUES ($1, NOW(), $2, $3)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b534b948d2340ff84dd6be564df24b6699aeb96945dafb62eea071d718cd0c40"
+}

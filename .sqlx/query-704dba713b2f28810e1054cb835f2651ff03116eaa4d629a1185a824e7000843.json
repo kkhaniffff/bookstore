@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                    id,\n                    stock_quantity,\n                    price\n            FROM books\n            WHERE archived IS FALSE\n            AND id = ANY($1)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "stock_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "price",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "704dba713b2f28810e1054cb835f2651ff03116eaa4d629a1185a824e7000843"
+}

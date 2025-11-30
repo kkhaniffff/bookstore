@@ -2,11 +2,35 @@ services:
   db:
     image: postgres:latest
     container_name: db-bookstore
-    ports:
-      - "5432:5432"
     env_file:
       - .env
     volumes:
       - db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -d \"$POSTGRES_DB\""]
+      interval: 5s
+      retries: 5
+    networks:
+      - backend
+
+  app:
+    build: .
+    container_name: bookstore
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    networks:
+      - backend
+    restart: unless-stopped
+
+
 volumes:
   db:
+
+networks:
+  backend:
+    driver: bridge

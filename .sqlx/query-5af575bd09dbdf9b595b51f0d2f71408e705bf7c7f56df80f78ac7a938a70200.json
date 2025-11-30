@@ -1,0 +1,61 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                    id,\n                    title,\n                    author,\n                    publication_date,\n                    stock_quantity,\n                    price,\n                    archived\n            FROM books\n            WHERE title LIKE $1 AND author LIKE $2\n            OFFSET $3 LIMIT $4\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "author",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "publication_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "stock_quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "price",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "archived",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5af575bd09dbdf9b595b51f0d2f71408e705bf7c7f56df80f78ac7a938a70200"
+}
