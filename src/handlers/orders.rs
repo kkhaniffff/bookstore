@@ -15,7 +15,9 @@ pub async fn create_order(
     Json(payload): Json<Vec<OrderItemPayload>>,
 ) -> Result<(StatusCode, Json<uuid::Uuid>), AppError> {
     if claims.role == Role::Admin {
-        return Err(AppError::Forbidden("Admins cannot create orders".to_string()));
+        return Err(AppError::Forbidden(
+            "Admins cannot create orders".to_string(),
+        ));
     }
 
     let mut tx = state.db.begin().await.map_err(AppError::from)?;
@@ -35,7 +37,7 @@ pub async fn create_order(
         })
         .sum();
 
-    let order_id = order_repo::insert(&mut tx, total_price)
+    let order_id = order_repo::insert(&mut tx, &claims.sub, total_price)
         .await
         .map_err(AppError::from)?;
 
@@ -56,10 +58,11 @@ pub async fn create_order(
 }
 
 pub async fn get_orders(
+    claims: Claims,
     State(state): State<Arc<AppState>>,
     Query(pagination): Query<PaginationPayload>,
 ) -> Result<Json<Vec<Order>>, AppError> {
-    let orders = order_repo::fetch_all(&state.db, pagination)
+    let orders = order_repo::fetch_all(&state.db, &claims.sub, pagination)
         .await
         .map_err(AppError::from)?;
 
