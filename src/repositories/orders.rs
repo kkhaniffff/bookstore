@@ -6,14 +6,19 @@ use crate::{
     payloads::orders::PaginationPayload,
 };
 
-pub async fn insert(tx: &mut Transaction<'_, Postgres>, total_price: i32) -> Result<Uuid, Error> {
+pub async fn insert(
+    tx: &mut Transaction<'_, Postgres>,
+    user_id: &Uuid,
+    total_price: i32,
+) -> Result<Uuid, Error> {
     let id = Uuid::new_v4();
     sqlx::query!(
         r#"
-            INSERT INTO orders (id, created_at, total_price)
-            VALUES ($1, NOW(), $2)
+            INSERT INTO orders (id, created_at, user_id, total_price)
+            VALUES ($1, NOW(), $2, $3)
         "#,
         id,
+        user_id,
         total_price
     )
     .execute(&mut **tx)
@@ -46,7 +51,11 @@ pub async fn insert_item(
     Ok(())
 }
 
-pub async fn fetch_all(pool: &PgPool, p: PaginationPayload) -> Result<Vec<Order>, Error> {
+pub async fn fetch_all(
+    pool: &PgPool,
+    user_id: &Uuid,
+    p: PaginationPayload,
+) -> Result<Vec<Order>, Error> {
     sqlx::query_as!(
         Order,
         r#"
@@ -63,10 +72,12 @@ pub async fn fetch_all(pool: &PgPool, p: PaginationPayload) -> Result<Vec<Order>
             FROM orders o
             JOIN order_items i ON o.id = i.order_id
             JOIN books b ON b.id = i.book_id
+            WHERE o.user_id = $1
             GROUP BY o.id
             ORDER BY o.created_at DESC
-            OFFSET $1 LIMIT $2
+            OFFSET $2 LIMIT $3
         "#,
+        user_id,
         p.offset(),
         p.limit(),
     )

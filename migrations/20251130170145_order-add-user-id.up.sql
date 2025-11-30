@@ -1,0 +1,6 @@
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_id UUID NOT NULL;
+
+ALTER TABLE orders
+ADD CONSTRAINT orders_user_fk
+FOREIGN KEY (user_id)
+REFERENCES users (id);
