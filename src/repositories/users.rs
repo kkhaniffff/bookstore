@@ -59,3 +59,10 @@ pub async fn fetch_by_id(pool: &PgPool, id: &Uuid) -> Result<Option<User>, Error
     .fetch_optional(pool)
     .await
 }
+
+pub async fn change_password(pool: &PgPool, id: &Uuid, password: &str) -> Result<u64, Error> {
+    sqlx::query!("UPDATE users SET password = $1 WHERE id = $2", password, id)
+        .execute(pool)
+        .await
+        .map(|res| res.rows_affected())
+}
