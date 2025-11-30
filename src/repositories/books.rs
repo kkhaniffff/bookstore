@@ -5,7 +5,7 @@ use crate::{
 use sqlx::{Error, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 
-pub async fn insert(pool: &PgPool, dto: &BookPayload) -> Result<Uuid, Error> {
+pub async fn insert(pool: &PgPool, payload: &BookPayload) -> Result<Uuid, Error> {
     let id = Uuid::new_v4();
     sqlx::query!(
         r#"
@@ -13,11 +13,11 @@ pub async fn insert(pool: &PgPool, dto: &BookPayload) -> Result<Uuid, Error> {
             VALUES ($1, $2, $3, $4, $5, $6)
         "#,
         id,
-        dto.title,
-        dto.author,
-        dto.publication_date,
-        dto.stock_quantity,
-        dto.price
+        payload.title,
+        payload.author,
+        payload.publication_date,
+        payload.stock_quantity,
+        payload.price
     )
     .execute(pool)
     .await
@@ -49,7 +49,7 @@ pub async fn fetch_all(pool: &PgPool, filter: BookFilterPayload) -> Result<Vec<B
     .await
 }
 
-pub async fn update(pool: &PgPool, id: Uuid, dto: &BookPayload) -> Result<u64, Error> {
+pub async fn update(pool: &PgPool, id: Uuid, payload: &BookPayload) -> Result<u64, Error> {
     sqlx::query!(
         r#"
             UPDATE books
@@ -60,11 +60,11 @@ pub async fn update(pool: &PgPool, id: Uuid, dto: &BookPayload) -> Result<u64, E
                 price = $5
             WHERE id = $6
         "#,
-        dto.title,
-        dto.author,
-        dto.publication_date,
-        dto.stock_quantity,
-        dto.price,
+        payload.title,
+        payload.author,
+        payload.publication_date,
+        payload.stock_quantity,
+        payload.price,
         id
     )
     .execute(pool)

@@ -1,3 +1,4 @@
+mod auth;
 mod error;
 mod handlers;
 mod models;
@@ -13,6 +14,8 @@ use tokio::net::TcpListener;
 
 pub struct AppState {
     pub db: PgPool,
+    pub jwt_secret: String,
+    pub jwt_ttl: i64,
 }
 
 #[tokio::main]
@@ -27,11 +30,24 @@ async fn main() {
         .await
         .expect("Failed to connect to the database");
 
+    let jwt_secret = std::env::var("JWT_SECRET").expect("Missing JWT_SECRET env variable");
+    let jwt_ttl = std::env::var("JWT_TTL")
+        .expect("Missing JWT_TTL env variable")
+        .parse()
+        .expect("JWT_TTL must be an integer (in seconds)");
+
+    let state = AppState {
+        db: pool,
+        jwt_secret,
+        jwt_ttl,
+    };
+
     let app = Router::new()
         .merge(routes::health::router())
         .merge(routes::books::router())
         .merge(routes::orders::router())
-        .with_state(Arc::new(AppState { db: pool }));
+        .merge(routes::auth::router())
+        .with_state(Arc::new(state));
 
     let addr = "0.0.0.0:3000";
 

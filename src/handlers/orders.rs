@@ -1,7 +1,8 @@
 use crate::{
     AppState,
+    auth::claims::Claims,
     error::AppError,
-    models::{books::BookStock, orders::Order},
+    models::{books::BookStock, orders::Order, users::Role},
     payloads::orders::{OrderItemPayload, PaginationPayload},
     repositories::{books as book_repo, orders as order_repo},
 };
@@ -9,9 +10,14 @@ use axum::{Json, extract::Query, extract::State, http::StatusCode};
 use std::sync::Arc;
 
 pub async fn create_order(
+    claims: Claims,
     State(state): State<Arc<AppState>>,
     Json(payload): Json<Vec<OrderItemPayload>>,
 ) -> Result<(StatusCode, Json<uuid::Uuid>), AppError> {
+    if claims.role == Role::Admin {
+        return Err(AppError::Forbidden("Admins cannot create orders".to_string()));
+    }
+
     let mut tx = state.db.begin().await.map_err(AppError::from)?;
 
     let book_ids: Vec<uuid::Uuid> = payload.iter().map(|i| i.book_id).collect();
