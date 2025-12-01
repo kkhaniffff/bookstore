@@ -1,0 +1,125 @@
+@host = http://localhost:3000
+
+###
+### HEALTH CHECK
+###
+
+GET {{host}}/health
+
+###
+### AUTH
+###
+
+### Register (public)
+POST {{host}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Jon Snow",
+  "email": "user@example.com",
+  "password": "password123"
+}
+
+### Login as User (public)
+# Save response token manually to {{userToken}}
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+
+### Login as Admin (public)
+# Save response token manually to {{adminToken}}
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "adminpass123"
+}
+
+###
+### BOOKS
+###
+
+### Get all books (public)
+# Supports optional filters:
+#   ?title=Ha      -> WHERE title LIKE 'Ha%'
+#   ?author=To     -> WHERE author LIKE 'To%'
+GET {{host}}/books?title=Harry%20Potter&offset=0&limit=5
+
+### Create a book (admin only)
+POST {{host}}/books
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Axum Web Framework",
+  "author": "Your Name",
+  "publication_date": "2025-12-01",
+  "stock_quantity": 1000,
+  "price": 2499
+}
+
+### Update a book (admin only)
+PUT {{host}}/books/43ca3c34-4f57-46b8-85d4-6f49aefbf404
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Updated Title",
+  "author": "Updated Author",
+  "publication_date": "2069-01-01",
+  "stock_quantity": 42,
+  "price": 4269
+}
+
+### Archive (soft-delete) a book (admin only)
+DELETE {{host}}/books/43ca3c34-4f57-46b8-85d4-6f49aefbf404
+Authorization: Bearer {{adminToken}}
+
+###
+### ORDERS
+###
+
+### Create order (user only)
+POST {{host}}/orders
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+[
+  {
+    "book_id": "43ca3c34-4f57-46b8-85d4-6f49aefbf404",
+    "amount": 5
+  },
+  {
+    "book_id": "933161a1-3b9e-4247-a8c7-844e3d04007e",
+    "amount": 3
+  }
+]
+
+### Get orders
+# Returns all orders for current user
+GET {{host}}/orders?offset=0&limit=10
+Authorization: Bearer {{userToken}}
+
+###
+### USERS
+###
+
+### Current user info
+GET {{host}}/users/me
+Authorization: Bearer {{userToken}}
+
+### Change password
+PUT {{host}}/users/password
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "old_password": "password123",
+  "new_password": "newpass456"
+}
+
