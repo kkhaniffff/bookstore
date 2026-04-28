@@ -1,0 +1,11 @@
+# Binaries
+*.test
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# env file
+.env
+.env.local
