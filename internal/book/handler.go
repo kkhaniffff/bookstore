@@ -1,12 +1,11 @@
 package book
 
 import (
-	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
-	apperror "github.com/kkhaniffff/bookstore/internal/error"
+	"github.com/kkhaniffff/bookstore/internal/json"
+	"github.com/kkhaniffff/bookstore/internal/errors"
 )
 
 type Handler struct {
@@ -26,68 +25,57 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 
 func (h *Handler) handleGetBooks(w http.ResponseWriter, r *http.Request) {
 	books := h.service.GetAll()
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(books)
+	json.Encode(w, http.StatusOK, books)
 }
 
 func (h *Handler) handleCreateBook(w http.ResponseWriter, r *http.Request) {
-	var i CreateInput
-	if err := json.NewDecoder(r.Body).Decode(&i); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
+	input, err := json.Decode[CreateInput](r)
+	if err != nil {
+		json.WriteError(w, errors.NewBadRequestError("invalid json"))
 		return
 	}
 
-	book, err := h.service.Create(i)
-	if appErr, ok := errors.AsType[*apperror.AppError](err); ok {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(appErr.Status)
-		json.NewEncoder(w).Encode(appErr)
+	book, err := h.service.Create(input)
+	if err != nil {
+		json.WriteError(w, err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(book)
+	json.Encode(w, http.StatusCreated, book)
 }
 
 func (h *Handler) handleUpdateBook(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		http.Error(w, "invalid uuid", http.StatusBadRequest)
+		json.WriteError(w, errors.NewBadRequestError("invalid uuid"))
 		return
 	}
 
-	var i UpdateInput
-	if err := json.NewDecoder(r.Body).Decode(&i); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
+	input, err := json.Decode[UpdateInput](r)
+	if err != nil {
+		json.WriteError(w, errors.NewBadRequestError("invalid json"))
 		return
 	}
 
-	book, err := h.service.Update(id, i)
-	if appErr, ok := errors.AsType[*apperror.AppError](err); ok {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(appErr.Status)
-		json.NewEncoder(w).Encode(appErr)
+	book, err := h.service.Update(id, input)
+	if err != nil {
+		json.WriteError(w, err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(book)
+	json.Encode(w, http.StatusOK, book)
 }
 
 func (h *Handler) handleDeleteBook(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		http.Error(w, "invalid uuid", http.StatusBadRequest)
+		json.WriteError(w, errors.NewBadRequestError("invalid uuid"))
 		return
 	}
 
 	err = h.service.Delete(id)
-	if appErr, ok := errors.AsType[*apperror.AppError](err); ok {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(appErr.Status)
-		json.NewEncoder(w).Encode(appErr)
+	if err != nil {
+		json.WriteError(w, err)
 		return
 	}
 

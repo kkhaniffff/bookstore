@@ -2,7 +2,7 @@ package book
 
 import (
 	"github.com/google/uuid"
-	apperror "github.com/kkhaniffff/bookstore/internal/error"
+	"github.com/kkhaniffff/bookstore/internal/errors"
 )
 
 type Repository interface {
@@ -26,7 +26,7 @@ func (s *Service) GetAll() []Book {
 
 func (s *Service) Create(i CreateInput) (Book, error) {
 	if problems := i.Valid(); len(problems) > 0 {
-		return Book{}, apperror.NewBadRequestWithErrors("Validation failed", problems)
+		return Book{}, errors.NewBadRequestWithErrors("Validation failed", problems)
 	}
 	book := Book{
 		ID:       uuid.New(),
@@ -40,7 +40,7 @@ func (s *Service) Create(i CreateInput) (Book, error) {
 
 func (s *Service) Update(id uuid.UUID, i UpdateInput) (Book, error) {
 	if problems := i.Valid(); len(problems) > 0 {
-		return Book{}, apperror.NewBadRequestWithErrors("Validation failed", problems)
+		return Book{}, errors.NewBadRequestWithErrors("Validation failed", problems)
 	}
 
 	existing, err := s.repo.GetByID(id)

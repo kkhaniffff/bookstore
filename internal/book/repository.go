@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	apperror "github.com/kkhaniffff/bookstore/internal/error"
+	"github.com/kkhaniffff/bookstore/internal/errors"
 )
 
 type InMemoryRepository struct {
@@ -37,7 +37,7 @@ func (r *InMemoryRepository) GetByID(id uuid.UUID) (Book, error) {
 
 	book, ok := r.books[id]
 	if !ok {
-		return Book{}, apperror.NewNotFoundError(fmt.Sprintf("book not found: %s", id))
+		return Book{}, errors.NewNotFoundError(fmt.Sprintf("book not found: %s", id))
 	}
 
 	return book, nil
@@ -57,7 +57,7 @@ func (r *InMemoryRepository) Delete(id uuid.UUID) error {
 
 	_, ok := r.books[id]
 	if !ok {
-		return apperror.NewNotFoundError(fmt.Sprintf("book not found: %s", id))
+		return errors.NewNotFoundError(fmt.Sprintf("book not found: %s", id))
 	}
 
 	delete(r.books, id)
