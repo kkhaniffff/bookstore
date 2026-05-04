@@ -8,9 +8,9 @@ import (
 )
 
 type Repository interface {
-	GetAll(ctx context.Context) []Book
+	GetAll(ctx context.Context) ([]Book, error)
 	GetByID(ctx context.Context, id uuid.UUID) (Book, error)
-	Save(ctx context.Context, b Book) Book
+	Save(ctx context.Context, b Book) (Book, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -22,7 +22,7 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) GetAll(ctx context.Context) []Book {
+func (s *Service) GetAll(ctx context.Context) ([]Book, error) {
 	return s.repo.GetAll(ctx)
 }
 
@@ -37,7 +37,7 @@ func (s *Service) Create(ctx context.Context, i CreateInput) (Book, error) {
 		Price:    i.Price,
 		Quantity: i.Quantity,
 	}
-	return s.repo.Save(ctx, book), nil
+	return s.repo.Save(ctx, book)
 }
 
 func (s *Service) Update(ctx context.Context, id uuid.UUID, i UpdateInput) (Book, error) {
@@ -63,7 +63,7 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, i UpdateInput) (Book
 		existing.Quantity = *i.Quantity
 	}
 
-	return s.repo.Save(ctx, existing), nil
+	return s.repo.Save(ctx, existing)
 }
 
 func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {

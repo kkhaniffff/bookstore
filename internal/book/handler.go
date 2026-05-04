@@ -24,7 +24,11 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func (h *Handler) handleGetBooks(w http.ResponseWriter, r *http.Request) {
-	books := h.service.GetAll(r.Context())
+	books, err := h.service.GetAll(r.Context())
+	if err != nil {
+		json.WriteError(w, err)
+		return
+	}
 	json.Encode(w, http.StatusOK, books)
 }
 
