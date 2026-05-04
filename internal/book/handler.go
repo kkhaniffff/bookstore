@@ -24,7 +24,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func (h *Handler) handleGetBooks(w http.ResponseWriter, r *http.Request) {
-	books := h.service.GetAll()
+	books := h.service.GetAll(r.Context())
 	json.Encode(w, http.StatusOK, books)
 }
 
@@ -35,7 +35,7 @@ func (h *Handler) handleCreateBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	book, err := h.service.Create(input)
+	book, err := h.service.Create(r.Context(), input)
 	if err != nil {
 		json.WriteError(w, err)
 		return
@@ -57,7 +57,7 @@ func (h *Handler) handleUpdateBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	book, err := h.service.Update(id, input)
+	book, err := h.service.Update(r.Context(), id, input)
 	if err != nil {
 		json.WriteError(w, err)
 		return
@@ -73,7 +73,7 @@ func (h *Handler) handleDeleteBook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.Delete(id)
+	err = h.service.Delete(r.Context(), id)
 	if err != nil {
 		json.WriteError(w, err)
 		return

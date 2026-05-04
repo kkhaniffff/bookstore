@@ -1,6 +1,7 @@
 package book
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -19,7 +20,7 @@ func NewInMemoryRepository() *InMemoryRepository {
 	}
 }
 
-func (r *InMemoryRepository) GetAll() []Book {
+func (r *InMemoryRepository) GetAll(ctx context.Context) []Book {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -31,7 +32,7 @@ func (r *InMemoryRepository) GetAll() []Book {
 	return books
 }
 
-func (r *InMemoryRepository) GetByID(id uuid.UUID) (Book, error) {
+func (r *InMemoryRepository) GetByID(ctx context.Context, id uuid.UUID) (Book, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -43,7 +44,7 @@ func (r *InMemoryRepository) GetByID(id uuid.UUID) (Book, error) {
 	return book, nil
 }
 
-func (r *InMemoryRepository) Save(b Book) Book {
+func (r *InMemoryRepository) Save(ctx context.Context, b Book) Book {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -51,7 +52,7 @@ func (r *InMemoryRepository) Save(b Book) Book {
 	return b
 }
 
-func (r *InMemoryRepository) Delete(id uuid.UUID) error {
+func (r *InMemoryRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
