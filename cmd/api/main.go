@@ -28,13 +28,13 @@ func run() error {
 
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		return fmt.Errorf("Database URL is not present")
+		return fmt.Errorf("database url is not present")
 	}
 
 	ctx := context.Background()
 	pool, err := postgres.NewPool(ctx, databaseURL)
 	if err != nil {
-		return fmt.Errorf("Failed to connect to database: %w", err)
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 	defer pool.Close()
 
@@ -51,15 +51,15 @@ func run() error {
 	}
 
 	server := &http.Server{
-		Addr: ":" + port,
+		Addr:    ":" + port,
 		Handler: mux,
 	}
 
 	serverErr := make(chan error, 1)
 	go func() {
-		slog.Info("Server starting", "addr", server.Addr)
+		slog.Info("server starting", "addr", server.Addr)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			serverErr <- fmt.Errorf("Server failed to start: %w", err)
+			serverErr <- fmt.Errorf("server failed to start: %w", err)
 		}
 	}()
 
@@ -70,16 +70,16 @@ func run() error {
 	case err := <-serverErr:
 		return err
 	case <-stop:
-		slog.Info("Server shutting down...")
+		slog.Info("server shutting down...")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		return fmt.Errorf("Server forced to shutdown: %w", err)
+		return fmt.Errorf("server forced to shutdown: %w", err)
 	}
 
-	slog.Info("Server exited gracefully")
+	slog.Info("server exited gracefully")
 	return nil
 }

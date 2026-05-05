@@ -28,7 +28,7 @@ func (s *Service) GetAll(ctx context.Context) ([]Book, error) {
 
 func (s *Service) Create(ctx context.Context, i CreateInput) (Book, error) {
 	if problems := i.Valid(); len(problems) > 0 {
-		return Book{}, errors.NewBadRequestWithErrors("Validation failed", problems)
+		return Book{}, errors.NewBadRequestWithErrors("validation failed", problems)
 	}
 	book := Book{
 		ID:       uuid.New(),
@@ -42,7 +42,7 @@ func (s *Service) Create(ctx context.Context, i CreateInput) (Book, error) {
 
 func (s *Service) Update(ctx context.Context, id uuid.UUID, i UpdateInput) (Book, error) {
 	if problems := i.Valid(); len(problems) > 0 {
-		return Book{}, errors.NewBadRequestWithErrors("Validation failed", problems)
+		return Book{}, errors.NewBadRequestWithErrors("validation failed", problems)
 	}
 
 	existing, err := s.repo.GetByID(ctx, id)

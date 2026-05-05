@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/kkhaniffff/bookstore/internal/json"
 	"github.com/kkhaniffff/bookstore/internal/errors"
+	"github.com/kkhaniffff/bookstore/internal/json"
 )
 
 type Handler struct {
@@ -35,7 +35,7 @@ func (h *Handler) handleGetBooks(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleCreateBook(w http.ResponseWriter, r *http.Request) {
 	input, err := json.Decode[CreateInput](r)
 	if err != nil {
-		json.WriteError(w, errors.NewBadRequestError("invalid json"))
+		json.WriteError(w, err)
 		return
 	}
 
@@ -57,7 +57,7 @@ func (h *Handler) handleUpdateBook(w http.ResponseWriter, r *http.Request) {
 
 	input, err := json.Decode[UpdateInput](r)
 	if err != nil {
-		json.WriteError(w, errors.NewBadRequestError("invalid json"))
+		json.WriteError(w, err)
 		return
 	}
 

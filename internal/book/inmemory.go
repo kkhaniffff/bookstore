@@ -20,7 +20,7 @@ func NewInMemoryRepository() *InMemoryRepository {
 	}
 }
 
-func (r *InMemoryRepository) GetAll(ctx context.Context) []Book {
+func (r *InMemoryRepository) GetAll(ctx context.Context) ([]Book, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -29,7 +29,7 @@ func (r *InMemoryRepository) GetAll(ctx context.Context) []Book {
 		books = append(books, b)
 	}
 
-	return books
+	return books, nil
 }
 
 func (r *InMemoryRepository) GetByID(ctx context.Context, id uuid.UUID) (Book, error) {
@@ -44,12 +44,12 @@ func (r *InMemoryRepository) GetByID(ctx context.Context, id uuid.UUID) (Book, e
 	return book, nil
 }
 
-func (r *InMemoryRepository) Save(ctx context.Context, b Book) Book {
+func (r *InMemoryRepository) Save(ctx context.Context, b Book) (Book, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	r.books[b.ID] = b
-	return b
+	return b, nil
 }
 
 func (r *InMemoryRepository) Delete(ctx context.Context, id uuid.UUID) error {
