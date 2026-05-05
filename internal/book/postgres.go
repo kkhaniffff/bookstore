@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kkhaniffff/bookstore/internal/errors"
+	"github.com/kkhaniffff/bookstore/internal/postgres"
 )
 
 type PostgresRepository struct {
@@ -21,7 +22,7 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 func (r *PostgresRepository) GetAll(ctx context.Context) ([]Book, error) {
 	query := `SELECT id, title, author, price, quantity FROM books`
 
-	rows, err := r.pool.Query(ctx, query)
+	rows, err := postgres.GetExecutor(ctx, r.pool).Query(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("error querying books: %w", err)
 	}
@@ -52,7 +53,9 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id uuid.UUID) (Book, e
 	query := `SELECT id, title, author, price, quantity FROM books WHERE id = $1`
 
 	var b Book
-	err := r.pool.QueryRow(ctx, query, id).Scan(&b.ID, &b.Title, &b.Author, &b.Price, &b.Quantity)
+	err := postgres.GetExecutor(ctx, r.pool).QueryRow(
+		ctx, query, id,
+	).Scan(&b.ID, &b.Title, &b.Author, &b.Price, &b.Quantity)
 
 	if err == pgx.ErrNoRows {
 		return Book{}, errors.NewNotFoundError(fmt.Sprintf("book not found: %s", id))
@@ -80,7 +83,7 @@ func (r *PostgresRepository) Save(ctx context.Context, b Book) (Book, error) {
 		RETURNING id, title, author, price, quantity`
 
 	var saved Book
-	err := r.pool.QueryRow(ctx, query,
+	err := postgres.GetExecutor(ctx, r.pool).QueryRow(ctx, query,
 		b.ID, b.Title, b.Author, b.Price, b.Quantity,
 	).Scan(&saved.ID, &saved.Title, &saved.Author, &saved.Price, &saved.Quantity)
 
@@ -94,13 +97,27 @@ func (r *PostgresRepository) Save(ctx context.Context, b Book) (Book, error) {
 func (r *PostgresRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `DELETE FROM books WHERE id = $1`
 
-	result, err := r.pool.Exec(ctx, query, id)
+	result, err := postgres.GetExecutor(ctx, r.pool).Exec(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("error deleting book: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {
 		return errors.NewNotFoundError(fmt.Sprintf("book not found: %s", id))
+	}
+
+	return nil
+}
+
+func (r *PostgresRepository) DecreaseStock(ctx context.Context, id uuid.UUID, quantity int) error {
+	query := `UPDATE books SET quantity = quantity - $2 WHERE id = $1 AND quantity >= $2`
+	result, err := postgres.GetExecutor(ctx, r.pool).Exec(ctx, query, id, quantity)
+	if err != nil {
+		return fmt.Errorf("error decreasing stock: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return errors.NewNotFoundError(fmt.Sprintf("book not found or insufficient stock: %s", id))
 	}
 
 	return nil

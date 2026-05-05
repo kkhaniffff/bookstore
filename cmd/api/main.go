@@ -13,6 +13,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/kkhaniffff/bookstore/internal/book"
+	"github.com/kkhaniffff/bookstore/internal/order"
 	"github.com/kkhaniffff/bookstore/internal/postgres"
 )
 
@@ -38,12 +39,19 @@ func run() error {
 	}
 	defer pool.Close()
 
+	tm := postgres.NewTxManager(pool)
+
 	bookRepo := book.NewPostgresRepository(pool)
 	bookService := book.NewService(bookRepo)
 	bookHandler := book.NewHandler(bookService)
 
+	orderRepo := order.NewPostgresRepository(pool)
+	orderService := order.NewService(tm, orderRepo, bookRepo)
+	orderHandler := order.NewHandler(orderService)
+
 	mux := http.NewServeMux()
 	bookHandler.RegisterRoutes(mux)
+	orderHandler.RegisterRoutes(mux)
 
 	port := os.Getenv("PORT")
 	if port == "" {
