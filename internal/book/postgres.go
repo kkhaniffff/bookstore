@@ -19,10 +19,17 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
 
-func (r *PostgresRepository) GetAll(ctx context.Context) ([]Book, error) {
-	query := `SELECT id, title, author, price, quantity FROM books`
+func (r *PostgresRepository) GetAll(ctx context.Context, filter FilterInput) ([]Book, error) {
+	query := `
+		SELECT id, title, author, price, quantity FROM books
+		WHERE ($1 = '' OR title ILIKE '%' || $1 || '%')
+			AND ($2 = '' OR author ILIKE '%' || $2 || '%')
+			AND ($3::int IS NULL OR price >= $3)
+			AND ($4::int IS NULL OR price <= $4)`
 
-	rows, err := postgres.GetExecutor(ctx, r.pool).Query(ctx, query)
+	rows, err := postgres.GetExecutor(ctx, r.pool).Query(ctx, query,
+		filter.Title, filter.Author, filter.MinPrice, filter.MaxPrice,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error querying books: %w", err)
 	}

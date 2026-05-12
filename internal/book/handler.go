@@ -24,12 +24,14 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func (h *Handler) handleGetBooks(w http.ResponseWriter, r *http.Request) {
-	books, err := h.service.GetAll(r.Context())
+	filter := NewFilterInput(r.URL.Query())
+	books, err := h.service.GetAll(r.Context(), filter)
 	if err != nil {
 		json.WriteError(w, err)
 		return
 	}
 	json.Encode(w, http.StatusOK, books)
+	r.URL.Query()
 }
 
 func (h *Handler) handleCreateBook(w http.ResponseWriter, r *http.Request) {

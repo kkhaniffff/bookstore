@@ -36,7 +36,8 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleGetAll(w http.ResponseWriter, r *http.Request) {
-	orders, err := h.service.GetAll(r.Context())
+	filter := NewFilterInput(r.URL.Query())
+	orders, err := h.service.GetAll(r.Context(), filter)
 	if err != nil {
 		json.WriteError(w, err)
 		return

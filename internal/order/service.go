@@ -15,7 +15,7 @@ type TxManager interface {
 
 type OrderRepository interface {
 	Create(ctx context.Context, order Order) error
-	GetAll(ctx context.Context) ([]Order, error)
+	GetAll(ctx context.Context, filter FilterInput) ([]Order, error)
 }
 
 type BookRepository interface {
@@ -83,6 +83,6 @@ func (s *Service) Create(ctx context.Context, items []CreateInput) (Order, error
 	return order, nil
 }
 
-func (s *Service) GetAll(ctx context.Context) ([]Order, error) {
-	return s.orderRepo.GetAll(ctx)
+func (s *Service) GetAll(ctx context.Context, filter FilterInput) ([]Order, error) {
+	return s.orderRepo.GetAll(ctx, filter)
 }

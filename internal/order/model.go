@@ -1,6 +1,8 @@
 package order
 
 import (
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -42,4 +44,43 @@ func (i CreateInput) Valid() map[string]string {
 		problems["quantity"] = "must be positive"
 	}
 	return problems
+}
+
+type FilterInput struct {
+	Status   *OrderStatus
+	MinTotal *int
+	MaxTotal *int
+	From     *time.Time
+	To       *time.Time
+}
+
+func NewFilterInput(q url.Values) FilterInput {
+	var i FilterInput
+
+	if status := q.Get("status"); status != "" {
+		s := OrderStatus(status)
+		i.Status = &s
+	}
+	if minTotal := q.Get("min_total"); minTotal != "" {
+		if v, err := strconv.Atoi(minTotal); err == nil {
+			i.MinTotal = &v
+		}
+	}
+	if maxTotal := q.Get("max_total"); maxTotal != "" {
+		if v, err := strconv.Atoi(maxTotal); err == nil {
+			i.MaxTotal = &v
+		}
+	}
+	if from := q.Get("from"); from != "" {
+		if t, err := time.Parse(time.RFC3339, from); err == nil {
+			i.From = &t
+		}
+	}
+	if to := q.Get("to"); to != "" {
+		if t, err := time.Parse(time.RFC3339, to); err == nil {
+			i.To = &t
+		}
+	}
+
+	return i
 }

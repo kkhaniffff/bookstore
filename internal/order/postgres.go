@@ -48,15 +48,22 @@ func (r *PostgresRepository) Create(ctx context.Context, order Order) error {
 	return nil
 }
 
-func (r *PostgresRepository) GetAll(ctx context.Context) ([]Order, error) {
+func (r *PostgresRepository) GetAll(ctx context.Context, filter FilterInput) ([]Order, error) {
 	query := `
         SELECT o.id, o.status, o.total, o.created_at,
                oi.id, oi.book_id, oi.quantity, oi.price
         FROM orders o
         INNER JOIN order_items oi ON oi.order_id = o.id
+		WHERE ($1::VARCHAR IS NULL OR o.status = $1)
+			AND ($2::INT IS NULL OR o.total >= $2)
+			AND ($3::INT IS NULL OR o.total <= $3)
+			AND ($4::TIMESTAMPTZ IS NULL OR o.created_at >= $4)
+			AND ($5::TIMESTAMPTZ IS NULL OR o.created_at <= $5)
         ORDER BY o.created_at DESC`
 
-	rows, err := postgres.GetExecutor(ctx, r.pool).Query(ctx, query)
+	rows, err := postgres.GetExecutor(ctx, r.pool).Query(ctx, query,
+		filter.Status, filter.MinTotal, filter.MaxTotal, filter.From, filter.To,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error querying orders: %w", err)
 	}
@@ -65,18 +72,18 @@ func (r *PostgresRepository) GetAll(ctx context.Context) ([]Order, error) {
 	ordersMap := make(map[uuid.UUID]*Order)
 	for rows.Next() {
 		var (
-			orderID uuid.UUID
-			status OrderStatus
-			total int
+			orderID   uuid.UUID
+			status    OrderStatus
+			total     int
 			createdAt time.Time
-			itemID uuid.UUID
-			bookID uuid.UUID
-			quantity int
-			price int
+			itemID    uuid.UUID
+			bookID    uuid.UUID
+			quantity  int
+			price     int
 		)
 
 		err := rows.Scan(&orderID, &status, &total, &createdAt,
-		&itemID, &bookID, &quantity, &price)
+			&itemID, &bookID, &quantity, &price)
 		if err != nil {
 			return nil, fmt.Errorf("error mapping order: %w", err)
 		}
@@ -84,21 +91,21 @@ func (r *PostgresRepository) GetAll(ctx context.Context) ([]Order, error) {
 		order, exists := ordersMap[orderID]
 		if !exists {
 			order = &Order{
-				ID: orderID,
-				Status: status,
-				Total: total,
+				ID:        orderID,
+				Status:    status,
+				Total:     total,
 				CreatedAt: createdAt,
-				Items: []OrderItem{},
+				Items:     []OrderItem{},
 			}
 
 			ordersMap[orderID] = order
 		}
 
 		order.Items = append(order.Items, OrderItem{
-			ID: itemID,
-			BookID: bookID,
+			ID:       itemID,
+			BookID:   bookID,
 			Quantity: quantity,
-			Price: price,
+			Price:    price,
 		})
 	}
 

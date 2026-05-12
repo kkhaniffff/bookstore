@@ -1,6 +1,11 @@
 package book
 
-import "github.com/google/uuid"
+import (
+	"net/url"
+	"strconv"
+
+	"github.com/google/uuid"
+)
 
 type Book struct {
 	ID       uuid.UUID `json:"id"`
@@ -56,4 +61,31 @@ func (i UpdateInput) Valid() map[string]string {
 		problems["quantity"] = "must be non-negative"
 	}
 	return problems
+}
+
+type FilterInput struct {
+	Title    string
+	Author   string
+	MinPrice *int
+	MaxPrice *int
+}
+
+func NewFilterInput(q url.Values) FilterInput {
+	i := FilterInput{
+		Title:  q.Get("title"),
+		Author: q.Get("author"),
+	}
+
+	if minPrice := q.Get("min_price"); minPrice != "" {
+		if v, err := strconv.Atoi(minPrice); err == nil {
+			i.MinPrice = &v
+		}
+	}
+	if maxPrice := q.Get("max_price"); maxPrice != "" {
+		if v, err := strconv.Atoi(maxPrice); err == nil {
+			i.MaxPrice = &v
+		}
+	}
+
+	return i
 }
